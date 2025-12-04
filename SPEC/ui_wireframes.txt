@@ -1,0 +1,33 @@
+UI Wireframe Notes – 2done+1 / ToDone Time Canvas
+
+Screen: Auth / Entry
+- Simple sign‑in via Supabase Auth (magic link or OAuth).
+- After sign‑in, user is taken to the Time Canvas screen.
+
+Screen: Time Canvas (Home)
+- Top area:
+  - App title.
+  - Today’s date.
+  - Small loading indicator when data is fetching.
+- Primary action at the top: an inline **Check‑In** card.
+
+Main area: vertical list of TimeBlocks for the current day.
+- Each TimeBlock is a card showing:
+  - Time range (start → end).
+  - Feeling score (pill on the right).
+  - Occupations: task text rendered as pills.
+- Between TimeBlocks: visual Gap areas (unaccounted time) with a dotted divider and label.
+
+Component: Check‑In Card
+- Suggests start time based on last block end, else now minus ~30 minutes.
+- Editable start and end (`datetime-local` inputs).
+- Multiple Occupation rows:
+  - [Task input] [Activity name input] [Remove row]
+  - “+ Add occupation” button adds another row.
+- Feeling selector: buttons for ‑2, ‑1, 0, +1, +2.
+- Primary button: “Save block”.
+
+Mobile‑first
+- Single‑column layout.
+- Large touch targets (~44px tap height).
+- Sticky top header; main content scrolls beneath.

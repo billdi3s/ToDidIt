@@ -1,0 +1,42 @@
+Architecture Notes – 2done+1 / ToDone Time Canvas
+
+Layers
+- UI: React + Tailwind
+  - `TimeCanvasPage`
+  - `CheckInCard`
+  - `Timeline`
+  - `TimeBlockCard`
+  - `GapDivider`
+- State and data hooks:
+  - `useTimeBlocks(dateIso)` – loads blocks + occupations + computes gaps.
+- Data access:
+  - `supabase` client wrapper in `/src/lib/supabaseClient.ts`.
+  - Direct Supabase table access for `time_blocks`, `occupations`, `activities`.
+- Auth:
+  - Supabase Auth (email / OAuth).
+  - User id derived from `auth.uid()` on the backend.
+
+High‑level flow
+1. User visits app.
+2. If not authenticated:
+   - Show Auth UI (out of scope for now; Supabase can render its own screen).
+3. Once authenticated:
+   - `TimeCanvasPage` calls `useTimeBlocks(todayIso)`.
+4. `useTimeBlocks`:
+   - Queries `time_blocks` for the day (current user only, via RLS).
+   - Queries `occupations` for those blocks.
+   - Maps DB rows → front‑end types.
+   - Sorts blocks by start time.
+   - Computes derived gaps between adjacent blocks.
+5. `TimeCanvasPage` renders:
+   - `CheckInCard` (for creating new blocks + occupations).
+   - `Timeline` with blocks + gaps.
+6. `CheckInCard` on save:
+   - Inserts a new `time_blocks` row.
+   - For each occupation row:
+     - Ensures an `activities` row exists for the activity name (per‑user).
+     - Inserts an `occupations` row.
+   - Calls `onSaved`, which triggers `useTimeBlocks` reload.
+
+This textual diagram can later be converted into visual diagrams (sequence, component,
+and data‑flow) if needed.

@@ -20,10 +20,8 @@ export default function App() {
 
   return (
     <Router>
-      <nav
-        className="w-full p-4 flex justify-between items-center"
-        style={{ background: "#111", color: "white" }}
-      >
+      {/* HEADER NAV — always visible */}
+      <header className="w-full bg-gray-900 text-white border-b border-gray-700 p-4 flex justify-between items-center">
         <Link to="/" className="text-xl font-semibold">
           2Done+1 Time Canvas
         </Link>
@@ -36,20 +34,26 @@ export default function App() {
             Log out
           </button>
         )}
-      </nav>
+      </header>
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <RequireAuth>
-              <TimeCanvas />
-            </RequireAuth>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      {/* MAIN ROUTES BELOW THE NAV */}
+      <main className="pt-4">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <TimeCanvas />
+              </RequireAuth>
+            }
+          />
+
+          <Route path="/login" element={<Login />} />
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </Router>
   );
 }

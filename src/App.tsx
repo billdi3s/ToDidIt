@@ -1,32 +1,21 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./Login";
-import { useAuth } from "./context/AuthProvider";
 import { TimeCanvasPage } from "./components/TimeCanvasPage";
+import { useAuth } from "./context/AuthProvider";
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-4 text-white">Loading…</div>;
-  if (!user) return <Navigate to="/login" replace />;
+
+  if (loading) return <div className="text-white p-4">Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
+
   return children;
-}
+};
 
-const App = () => {
-  const { user, signOut } = useAuth();
-
+const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      {user && (
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={signOut}
-            className="px-3 py-1 bg-slate-700 text-white rounded"
-          >
-            Log out
-          </button>
-        </div>
-      )}
-
+    <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
 
@@ -38,11 +27,8 @@ const App = () => {
             </RequireAuth>
           }
         />
-
-        {/* SPA fallback — prevents /# issue on OAuth */}
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 };
 

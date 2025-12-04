@@ -1,57 +1,48 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./Login";
 import { useAuth } from "./context/AuthProvider";
 import { TimeCanvasPage } from "./components/TimeCanvasPage";
-import Login from "./Login";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const { session, loading } = useAuth();
-
-  if (loading) return <div className="text-white p-6">Loading…</div>;
-  if (!session) return <Navigate to="/login" replace />;
-
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-4 text-white">Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
-function LogoutButton() {
-  const { signOut } = useAuth();
+const App = () => {
+  const { user, signOut } = useAuth();
 
   return (
-    <button
-      onClick={signOut}
-      className="absolute top-3 right-3 px-3 py-1 text-xs bg-red-600 rounded"
-    >
-      Log out
-    </button>
-  );
-}
+    <BrowserRouter>
+      {user && (
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={signOut}
+            className="px-3 py-1 bg-slate-700 text-white rounded"
+          >
+            Log out
+          </button>
+        </div>
+      )}
 
-const App: React.FC = () => {
-  return (
-    <Router>
       <Routes>
-        {/* Login Route */}
         <Route path="/login" element={<Login />} />
 
-        {/* Authenticated Area */}
         <Route
           path="/"
           element={
             <RequireAuth>
-              <div className="relative">
-                <LogoutButton />
-                <TimeCanvasPage />
-              </div>
+              <TimeCanvasPage />
             </RequireAuth>
           }
         />
+
+        {/* SPA fallback — prevents /# issue on OAuth */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 };
 

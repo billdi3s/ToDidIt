@@ -1,33 +1,31 @@
 import { useState } from "react";
 import { supabase } from "./lib/supabaseClient";
-import { useAuth } from "./context/AuthProvider";
-import { Navigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
-  const { session } = useAuth();
 
-  // If already logged in, redirect to main page
-  if (session) return <Navigate to="/" replace />;
-
-  async function signInWithMagic() {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      shouldCreateUser: true,
-    });
-    if (error) alert(error.message);
-    else alert("Magic link sent!");
-  }
-
-  async function signInWithGoogle() {
+  async function signinWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}`,
-      },
+        redirectTo: window.location.origin // NO trailing slash, prevents /#
+      }
     });
 
     if (error) alert(error.message);
+  }
+
+  async function sendMagicLink() {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      shouldCreateUser: true,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
+
+    if (error) alert(error.message);
+    else alert("Magic link sent!");
   }
 
   return (
@@ -40,18 +38,14 @@ export default function Login() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
       />
-
-      <button
-        className="ml-2 p-2 bg-blue-500 rounded"
-        onClick={signInWithMagic}
-      >
+      <button className="ml-2 p-2 bg-blue-500 rounded" onClick={sendMagicLink}>
         Send Magic Link
       </button>
 
       <div className="mt-4">
         <button
-          className="p-2 bg-red-600 rounded"
-          onClick={signInWithGoogle}
+          className="p-2 bg-red-500 rounded"
+          onClick={signinWithGoogle}
         >
           Sign in with Google
         </button>

@@ -36,6 +36,7 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Prefill start and end times
   React.useEffect(() => {
     const now = new Date();
     const suggestedStart = lastBlockEnd
@@ -48,14 +49,15 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
 
   const updateRow = (id: string, field: keyof OccupationRow, value: string) => {
     setRows((current) =>
-      current.map((row) =>
-        row.id === id ? { ...row, [field]: value } : row
-      )
+      current.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     );
   };
 
   const addRow = () => {
-    setRows((current) => [...current, { id: makeRowId(), task: "", activityName: "" }]);
+    setRows((current) => [
+      ...current,
+      { id: makeRowId(), task: "", activityName: "" },
+    ]);
   };
 
   const removeRow = (id: string) => {
@@ -71,6 +73,17 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
     setIsSaving(true);
 
     try {
+      // Ensure user is logged in
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("You must be logged in to save entries.");
+      }
+
+      const user_id = user.id;
+
       const startDate = new Date(startInput);
       const endDate = new Date(endInput);
 
@@ -89,9 +102,13 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
         throw new Error("Add at least one occupation (task + activity).");
       }
 
+      //
+      // 🧱 INSERT TIME BLOCK — always include user_id for RLS
+      //
       const { data: block, error: blockError } = await supabase
         .from("time_blocks")
         .insert({
+          user_id, // REQUIRED for RLS
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
           feeling,
@@ -101,60 +118,66 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
 
       if (blockError) throw blockError;
 
+      //
+      // 🗂 INSERT ACTIVITY + OCCUPATIONS
+      //
       for (const row of nonEmptyRows) {
         const task = row.task.trim();
         const activityName =
-          row.activityName.trim().length > 0
+          row.activityName.trim() !== ""
             ? row.activityName.trim()
             : "Uncategorised";
 
-        if (!task) {
-          // Skip rows without a task description.
-          continue;
-        }
+        if (!task) continue;
 
-        // Find or create Activity by name for this user.
-        const { data: existingActivities, error: findError } = await supabase
+        // Find existing activity for this user
+        const { data: existing, error: findError } = await supabase
           .from("activities")
           .select("*")
           .eq("name", activityName)
+          .eq("user_id", user_id)
           .limit(1);
 
         if (findError) throw findError;
 
         let activityId: string;
 
-        if (existingActivities && existingActivities.length > 0) {
-          activityId = existingActivities[0].id;
+        if (existing && existing.length > 0) {
+          activityId = existing[0].id;
         } else {
-          const { data: newActivity, error: insertActivityError } = await supabase
+          const { data: newAct, error: createErr } = await supabase
             .from("activities")
-            .insert({ name: activityName })
+            .insert({
+              name: activityName,
+              user_id, // REQUIRED for RLS
+            })
             .select()
             .single();
 
-          if (insertActivityError) throw insertActivityError;
-          activityId = newActivity.id;
+          if (createErr) throw createErr;
+          activityId = newAct.id;
         }
 
+        // Insert occupation row with explicit user_id
         const { error: occError } = await supabase.from("occupations").insert({
           time_block_id: block.id,
           task,
           activity_id: activityId,
+          user_id, // REQUIRED for RLS
         });
 
         if (occError) throw occError;
       }
 
-      // Reset form (keep feeling, reset rows).
+      // Reset form after save
       setRows([{ id: makeRowId(), task: "", activityName: "" }]);
       const now = new Date();
       setStartInput(toLocalInputValue(now));
       setEndInput(toLocalInputValue(now));
       onSaved();
     } catch (err: any) {
-      console.error("[CheckInCard] Failed to save check‑in", err);
-      setError(err.message ?? "Failed to save check‑in.");
+      console.error("[CheckInCard] Failed to save check-in", err);
+      setError(err.message ?? "Failed to save check-in.");
     } finally {
       setIsSaving(false);
     }
@@ -166,10 +189,11 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
     <section className="bg-slate-900 border border-slate-700 rounded-xl p-4 text-xs">
       <h2 className="text-sm font-semibold mb-2">Check in</h2>
       <p className="text-xs text-slate-400 mb-3">
-        Start and end a block, add what you were doing, and capture how you
-        felt.
+        Start and end a block, add what you were doing, and capture how you felt.
       </p>
+
       <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+        {/* Start / End */}
         <div className="grid grid-cols-1 gap-2">
           <label className="flex flex-col gap-1">
             <span className="text-[11px] text-slate-300">Start</span>
@@ -180,6 +204,7 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
               onChange={(e) => setStartInput(e.target.value)}
             />
           </label>
+
           <label className="flex flex-col gap-1">
             <span className="text-[11px] text-slate-300">End</span>
             <input
@@ -191,9 +216,11 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
           </label>
         </div>
 
+        {/* Occupations */}
         <div className="flex flex-col gap-2">
           <span className="text-[11px] text-slate-300">Occupations</span>
-          {rows.map((row, index) => (
+
+          {rows.map((row) => (
             <div key={row.id} className="grid grid-cols-[1fr,1fr,auto] gap-2">
               <input
                 type="text"
@@ -221,6 +248,7 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
               </button>
             </div>
           ))}
+
           <button
             type="button"
             className="self-start mt-1 px-2 py-1 text-[11px] rounded-md border border-slate-600 text-slate-200"
@@ -230,6 +258,7 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
           </button>
         </div>
 
+        {/* Feeling */}
         <div className="flex flex-col gap-1">
           <span className="text-[11px] text-slate-300">Feeling</span>
           <div className="inline-flex gap-1">
@@ -251,9 +280,7 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
         </div>
 
         {error && (
-          <p className="text-[11px] text-red-400">
-            {error}
-          </p>
+          <p className="text-[11px] text-red-400">{error}</p>
         )}
 
         <div className="flex justify-end">

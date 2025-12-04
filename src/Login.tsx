@@ -1,25 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient";
+import { useAuth } from "./context/AuthProvider";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
+  const { session } = useAuth();
+  const navigate = useNavigate();
 
-  //
-  // MAGIC LINK LOGIN
-  //
+  // Redirect if already logged in
+  useEffect(() => {
+    if (session) navigate("/", { replace: true });
+  }, [session, navigate]);
+
   async function signInMagicLink() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      shouldCreateUser: true
+      shouldCreateUser: true,
     });
 
     if (error) alert(error.message);
     else alert("Magic link sent!");
   }
 
-  //
-  // GOOGLE OAUTH LOGIN
-  //
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -35,7 +38,6 @@ export default function Login() {
     <div className="p-6 text-white">
       <h1 className="text-xl mb-6 font-semibold">Login</h1>
 
-      {/* Email input */}
       <input
         className="p-2 rounded text-black mb-4 w-64"
         value={email}
@@ -43,7 +45,6 @@ export default function Login() {
         placeholder="your@email.com"
       />
 
-      {/* Magic Link Button */}
       <div className="mb-4">
         <button
           className="p-2 bg-blue-500 rounded mr-2"
@@ -53,7 +54,6 @@ export default function Login() {
         </button>
       </div>
 
-      {/* Google Button */}
       <div>
         <button
           className="p-2 bg-red-500 rounded"

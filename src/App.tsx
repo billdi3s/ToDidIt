@@ -1,51 +1,55 @@
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useLocation
-} from "react-router-dom";
-
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
+import TimeCanvas from "./TimeCanvas";
 import Login from "./Login";
-import { TimeCanvasPage } from "./components/TimeCanvasPage";
 import { useAuth } from "./context/AuthProvider";
+import { supabase } from "./lib/supabaseClient";
 
-// --- RequireAuth Component ---
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { session } = useAuth();
-  const location = useLocation();
-
-  // If not logged in → redirect to login
-  if (!session) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
+  if (!session) return <Navigate to="/login" replace />;
   return children;
 }
 
-const App: React.FC = () => {
+export default function App() {
+  const { session } = useAuth();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   return (
     <Router>
-      <Routes>
-        {/* Public route */}
-        <Route path="/login" element={<Login />} />
+      <nav
+        className="w-full p-4 flex justify-between items-center"
+        style={{ background: "#111", color: "white" }}
+      >
+        <Link to="/" className="text-xl font-semibold">
+          2Done+1 Time Canvas
+        </Link>
 
-        {/* Protected route */}
+        {session && (
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+          >
+            Log out
+          </button>
+        )}
+      </nav>
+
+      <Routes>
         <Route
           path="/"
           element={
             <RequireAuth>
-              <TimeCanvasPage />
+              <TimeCanvas />
             </RequireAuth>
           }
         />
-
-        {/* Handle unmatched routes explicitly */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
-};
-
-export default App;
+}

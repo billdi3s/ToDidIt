@@ -1,5 +1,6 @@
 import React from "react";
 import { supabase } from "../lib/supabaseClient";
+import { ensureUserExists } from "../lib/ensureUserExists";
 
 type Props = {
   onSaved: () => void;
@@ -73,16 +74,9 @@ export const CheckInCard: React.FC<Props> = ({ onSaved, lastBlockEnd }) => {
     setIsSaving(true);
 
     try {
-      // Ensure user is logged in
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error("You must be logged in to save entries.");
-      }
-
-      const user_id = user.id;
+      // Ensure user exists in both auth.users AND public.users
+      // (OAuth users are only created in auth.users by default)
+      const user_id = await ensureUserExists();
 
       const startDate = new Date(startInput);
       const endDate = new Date(endInput);

@@ -1,24 +1,33 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./Login";
-import { TimeCanvasPage } from "./components/TimeCanvasPage";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthProvider";
+import Login from "./Login";
+import TimeCanvasPage from "./components/TimeCanvasPage";
 
-const RequireAuth = ({ children }: { children: JSX.Element }) => {
+function RequireAuth({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="text-white p-4">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (loading) return <div className="p-6 text-white">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
 
   return children;
-};
+}
 
-const App: React.FC = () => {
+export default function App() {
+  const { user, logout } = useAuth();
+
   return (
-    <Router>
+    <BrowserRouter>
+      {user && (
+        <button
+          onClick={logout}
+          className="fixed top-4 right-4 bg-red-600 px-4 py-2 rounded text-white"
+        >
+          Log Out
+        </button>
+      )}
+
       <Routes>
         <Route path="/login" element={<Login />} />
-
         <Route
           path="/"
           element={
@@ -28,8 +37,6 @@ const App: React.FC = () => {
           }
         />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
-};
-
-export default App;
+}

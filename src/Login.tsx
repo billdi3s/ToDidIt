@@ -4,10 +4,10 @@ import { supabase } from "./lib/supabaseClient";
 export default function Login() {
   const [email, setEmail] = useState("");
 
-  async function signInWithEmail() {
+  async function sendMagicLink() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      shouldCreateUser: true
+      shouldCreateUser: true,
     });
 
     if (error) alert(error.message);
@@ -15,40 +15,34 @@ export default function Login() {
   }
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: "https://2didit.com",
       },
     });
+
+    if (error) alert(error.message);
   }
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-xl mb-4">Login</h1>
+    <div className="p-10 text-white flex flex-col gap-4">
+      <h1 className="text-2xl">Login</h1>
 
       <input
-        className="p-2 rounded text-black"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
+        className="p-3 text-black rounded"
       />
 
-      <button
-        className="ml-2 p-2 bg-blue-500 rounded"
-        onClick={signInWithEmail}
-      >
+      <button onClick={sendMagicLink} className="bg-blue-600 p-3 rounded">
         Send Magic Link
       </button>
 
-      <div className="mt-4">
-        <button
-          className="p-2 bg-red-500 rounded"
-          onClick={signInWithGoogle}
-        >
-          Sign in with Google
-        </button>
-      </div>
+      <button onClick={signInWithGoogle} className="bg-red-600 p-3 rounded">
+        Sign in with Google
+      </button>
     </div>
   );
 }

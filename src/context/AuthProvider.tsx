@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-interface AuthContextValue {
+interface AuthContextType {
   user: any;
   loading: boolean;
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue>({
+const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: async () => {},
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   async function loadSession() {
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
     setUser(data?.session?.user ?? null);
     setLoading(false);
   }
@@ -35,10 +35,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function logout() {
+  const logout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, logout }}>

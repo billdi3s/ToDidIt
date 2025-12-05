@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/auth/v1/(.*)",
-      "destination": "https://nyspieumuqopqiwutwdue.supabase.co/auth/v1/$1"
+      "destination": "https://nyspieumuqopiwtudwte.supabase.co/auth/v1/$1"
     },
     {
       "source": "/(.*)",

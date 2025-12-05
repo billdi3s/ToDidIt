@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthProvider";
 import Login from "./Login";
-import TimeCanvasPage from "./components/TimeCanvasPage";
+import { TimeCanvasPage } from "./components/TimeCanvasPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
